@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Creativity Quest RPG</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+
+        body {
+            background-color: #0b0b0e;
+            color: #ffffff;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            padding: 15px;
+            overflow-x: hidden;
+        }
+
+        .stats-container {
+            width: 100%;
+            max-width: 440px;
+            background: #141419;
+            border: 1px solid #23232f;
+            border-radius: 16px;
+            padding: 12px 16px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+        }
+
+        .stats-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .level-badge {
+            background: linear-gradient(135deg, #00ffcc, #0099ff);
+            color: #0b0b0e;
+            font-weight: 800;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+        }
+
+        .score-display { font-weight: 700; font-size: 0.95rem; color: #ffcc00; }
+
+        .xp-bar-bg { width: 100%; height: 10px; background: #252538; border-radius: 5px; overflow: hidden; }
+        .xp-bar-fill { width: 0%; height: 100%; background: linear-gradient(90deg, #00ffcc, #0055ff); transition: width 0.5s ease; }
+        .xp-text { font-size: 0.75rem; color: #8a8a9e; text-align: right; margin-top: 4px; }
+
+        h1 {
+            font-size: 1.4rem;
+            color: #00ffcc;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 15px;
+            text-shadow: 0 0 10px rgba(0, 255, 204, 0.2);
+        }
+
+        .wheel-container {
+            position: relative;
+            width: 320px;
+            height: 320px;
+            margin-bottom: 25px;
+        }
+
+        .pointer {
+            position: absolute;
+            top: -12px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 0; height: 0;
+            border-left: 14px solid transparent;
+            border-right: 14px solid transparent;
+            border-top: 24px solid #ff3366;
+            z-index: 20;
+            filter: drop-shadow(0px 3px 5px rgba(0,0,0,0.5));
+        }
+
+        #wheelCanvas {
+            border-radius: 50%;
+            box-shadow: 0 0 30px rgba(0,0,0,0.8);
+            display: block;
+            transition: transform 4s cubic-bezier(0.1, 0.8, 0.1, 1);
+        }
+
+        .wheel-center-cap {
+            position: absolute;
+            width: 36px; height: 36px;
+            background: #0b0b0e;
+            border: 3px solid #ffffff;
+            border-radius: 50%;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 15;
+        }
+
+        .spin-btn {
+            background: linear-gradient(135deg, #00ffcc, #0099ff);
+            color: #0b0b0e;
+            border: none;
+            padding: 14px 35px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            border-radius: 50px;
+            cursor: pointer;
+            box-shadow: 0 5px 15px rgba(0, 255, 204, 0.3);
+            margin-bottom: 20px;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .spin-btn:disabled { opacity: 0.4; }
+
+        .cabinet-section { width: 100%; max-width: 440px; margin-bottom: 15px; }
+        .cabinet-title { font-size: 0.8rem; color: #8a8a9e; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px; }
+
+        .grand-cabinet {
+            display: flex;
+            justify-content: space-around;
+            background: linear-gradient(145deg, #191428, #141419);
+            border: 1px solid #ffcc00;
+            border-radius: 12px;
+            padding: 12px;
+            margin-bottom: 15px;
+        }
+
+        .task-cabinet {
+            display: grid;
+            grid-template-columns: repeat(9, 1fr);
+            gap: 4px;
+            background: #141419;
+            border: 1px solid #23232f;
+            border-radius: 12px;
+            padding: 12px;
+        }
+
+        .trophy-slot {
+            font-size: 1rem;
+            opacity: 0.15;
+            filter: grayscale(1);
+            transition: all 0.5s ease;
+            text-align: center;
+        }
+        .trophy-slot.unlocked {
+            opacity: 1;
+            filter: grayscale(0) drop-shadow(0 0 6px rgba(255, 204, 0, 0.8));
+        }
+        .grand-slot { font-size: 1.6rem; }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(5,5,8,0.96);
+            z-index: 100;
+            justify-content: center;
+            align-items: center;
+            padding: 15px;
+        }
+
+        .modal-content {
+            background: #141419;
+            border: 2px solid #00ffcc;
+            border-radius: 20px;
+            padding: 25px;
+            width: 100%;
+            max-width: 400px;
+            box-shadow: 0 0 30px rgba(0,255,204,0.15);
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .modal h2 { color: #00ffcc; font-size: 1.1rem; text-transform: uppercase; margin-bottom: 5px; }
+        .challenge-title { font-size: 1.3rem; font-weight: 700; margin-bottom: 10px; color: #fff; }
+        
+        .meta-tags { display: flex; gap: 8px; margin-bottom: 15px; }
+        .tag { font-size: 0.75rem; font-weight: bold; padding: 3px 8px; border-radius: 6px; text-transform: uppercase; }
+        .tag-time { background: #252538; color: #ffcc00; }
+        .tag-diff { background: #ff3366; color: #fff; }
+
+        .suggestion-box { background: #191428; border-left: 3px solid #9933ff; padding: 10px; border-radius: 4px; font-size: 0.85rem; color: #b5b5c9; margin-bottom: 15px; line-height: 1.3; }
+
+        .step-list { text-align: left; margin-bottom: 25px; list-style: none; }
+
+        .step-item {
+            display: flex;
+            align-items: flex-start;
+            margin-bottom: 12px;
+            background: #1d1d26;
+            padding: 12px;
+            border-radius: 10px;
+            cursor: pointer;
+        }
+        .step-item input { margin-right: 12px; margin-top: 3px; transform: scale(1.2); accent-color: #00ffcc; }
+        .step-item.completed { background: #142422; opacity: 0.7; }
+        .step-item.completed span { text-decoration: line-through; color: #8a8a9e; }
+
+        .action-btn { width: 100%; padding: 12px; border-radius: 30px; font-size: 1rem; font-weight: bold; border: none; cursor: pointer; margin-bottom: 10px; }
+        .claim-btn { background: linear-gradient(135deg, #ffcc00, #ff6600); color: #0b0b0e; display: none; }
+        .abandon-btn { background: #252538; color: #ff5555; }
+    </style>
+</head>
+<body>
+
+    <div class="stats-container">
+        <div class="stats-row">
+            <div class="level-badge" id="lvlDisplay">Level 1 Creator</div>
+            <div class="score-display" id="scoreDisplay">Score: 0</div>
+        </div>
+        <div class="xp-bar-bg"><div class="xp-bar-fill" id="xpFill"></div></div>
+        <div class="xp-text" id="xpText">0 / 100 XP</div>
+    </div>
+
+    <h1>Creativity Quest</h1>
+
+    <div class="wheel-container">
+        <div class="pointer"></div>
+        <canvas id="wheelCanvas" width="320" height="320"></canvas>
+        <div class="wheel-center-cap"></div>
+    </div>
+
+    <button class="spin-btn" id="spinBtn">SPIN QUEST WHEEL</button>
+
+    <div class="cabinet-section">
+        <div class="cabinet-title">👑 Grand Category Trophies</div>
+        <div class="grand-cabinet">
+            <div class="trophy-slot grand-slot" id="g-vocal" title="Grand Music Master">🎤</div>
+            <div class="trophy-slot grand-slot" id="g-design" title="Grand Design Master">🎨</div>
+            <div class="trophy-slot grand-slot" id="g-hybrid" title="Grand Dabble Mix Master">🔄</div>
+            <div class="trophy-slot grand-slot" id="g-comedy" title="Grand Comedy Master">🎭</div>
+            <div class="trophy-slot grand-slot" id="g-wild" title="Grand Wildcard Master">🎲</div>
+        </div>
+    </div>
+
+    <div class="cabinet-section">
+        <div class="cabinet-title">🎖️ Individual Assignment Trophies</div>
+        <div class="task-cabinet" id="taskCabinet"></div>
+    </div>
+
+    <div class="modal" id="questModal">
+        <div class="modal-content">
+            <h2>Active Assignment</h2>
+            <div class="challenge-title" id="questTitle">Challenge Title</div>
+            <div class="meta-tags">
+                <span class="tag tag-time" id="questTimeTag">30 mins</span>
+                <span class="tag tag-diff" id="questDiffTag">Medium</span>
+            </div>
+            <div class="suggestion-box" id="questSuggestBox"></div>
+            <ul class="step-list" id="stepList"></ul>
+            <button class="action-btn claim-btn" id="claimBtn">CLAIM REWARD (+35 XP)</button>
+            <button class="action-btn abandon-btn" id="abandonBtn">Abandon Quest</button>
+        </div>
+    </div>
+
+    <script>
+        // Data updated to support 27 challenges with exact operational details
+        const quests = [
+            // Music & Vocal Challenges
+            { id: "v1", short: "Sprint", title: "30-Min Lyric Sprint", type: "vocal", emoji: "⏱️", time: "30 mins", diff: "Hard", start: "Pull up a countdown clock on your phone and use a random single-word generator to act as your core prompt theme.", steps: ["Set a timer strictly for 30 minutes", "Pick a random topic or use a word generator", "Write a complete raw 16-bar rap verse or a verse and chorus"] },
+            { id: "v2", short: "Flip", title: "The Genre Flip", type: "vocal", emoji: "🔄", time: "45 mins", diff: "Medium", start: "Find a slow, soulful folk or pop acoustic snippet, drag it into your workstation, and radically change its tempo architecture.", steps: ["Choose a well-known pop, rock, or folk song", "Rewrite the vocal delivery entirely", "Turn it into a drill or melodic rap track context"] },
+            { id: "v3", short: "Acapella", title: "Acapella Layering", type: "vocal", emoji: "🎙️", time: "60 mins", diff: "Hard", start: "Turn on a basic click metronome in your headphones and record one fundamental backbone guide-vocal melody line.", steps: ["Record a clean lead vocal track entirely acapella", "Layer 3-4 tracks of your own voice beneath it", "Add harmonies, ad-libs, or beatboxing/percussion textures"] },
+            { id: "v4", short: "Dict Chllg", title: "The Dictionary Challenge", type: "vocal", emoji: "📖", time: "40 mins", diff: "Medium", start: "Flip open a physical book or load a random noun index site, blindly write down the first 5 words you spot, and circle them.", steps: ["Open a dictionary or a random word website", "Select exactly 5 words completely at random", "Force yourself to weave them naturally into a single verse"] },
+            { id: "v5", short: "Alter-Ego", title: "The Alter-Ego Track", type: "vocal", emoji: "👺", time: "50 mins", diff: "Medium", start: "Adopt a name or vocal texture completely different from your own, changing your physical posture before writing.", steps: ["Adopt a fictional character, villain, or distinct persona", "Step entirely out of your usual personal writing style", "Write and record a short verse from that perspective"] },
+            
+            // Graphic Design & Visuals
+            { id: "d1", short: "Cover Art", title: "The Fake Single Cover", type: "design", emoji: "🖼️", time: "45 mins", diff: "Easy", start: "Import a low-fidelity or Polaroid-style photo into your editing software and use a harsh retro flash overlay tint.", steps: ["Concoct an imaginary title for an unwritten song", "Select a specific aesthetic focus (gritty VHS, vintage Polaroid, or street art)", "Design a high-concept single cover matching that theme"] },
+            { id: "d2", short: "Merch", title: "Merch Concept", type: "design", emoji: "👕", steps: ["Pick your absolute favorite artist or your own brand", "Select a medium (typography-heavy hoodie, concert poster, or vinyl sleeve)", "Design the complete printable concept layout asset"], time: "60 mins", diff: "Medium", start: "Locate a clean, flat-lay blank hoodie mockup template and establish a stark typography design down the sleeve." },
+            { id: "d3", short: "Pixel Art", title: "Pixel Art Portrait", type: "design", emoji: "👾", steps: ["Step completely out of standard graphic design tools", "Map out a customized avatar, album icon, or retro 16-bit street scene", "Render it crisp using limited pixel grid constraints"], time: "90 mins", diff: "Hard", start: "Open a custom grid canvas locked strictly to 64x64 resolution pixels and establish a limited 5-color layout palette." },
+            { id: "d4", short: "Label", title: "Brand a Fake Record Label", type: "design", emoji: "🏢", steps: ["Invent an independent, underground record label concept", "Design a distinct corporate logo and select a color palette", "Produce a clean layout concept mockup for its business card"], time: "75 mins", diff: "Medium", start: "Choose two geometric vector shapes, fuse them together, and pick a sleek neon-on-dark minimalist color layout palette." },
+            
+            // The Dabble Mix (Hybrid)
+            { id: "h1", short: "Aesthetic", title: "The Aesthetic Match", type: "hybrid", emoji: "🌌", steps: ["Design a striking, high-impact visual graphic first", "Analyze the completed visual design and capture its mood", "Write a 1-minute vocal track that perfectly mirrors that vibe"], time: "90 mins", diff: "Hard", start: "Assemble a moody visual composition using a dark room aesthetic, then open your mic and capture matching ambient audio styles." },
+            { id: "h2", short: "Kinetic", title: "The Lyric Video Snippet", type: "hybrid", emoji: "📱", steps: ["Isolate a high-impact 15-second snippet of a recorded verse", "Design a highly stylized kinetic typography system", "Animate the text delivery layers to perfectly track the audio bars"], time: "120 mins", diff: "Expert", start: "Slice exactly 4 bars of your sharpest audio project and drop keyframes on the timeline to snap exactly with heavy punch transients." },
+            { id: "h3", short: "Rollout", title: "The Album Rollout Blueprint", type: "hybrid", emoji: "🗺️", steps: ["Pick a cohesive artistic theme for a fictional rollout pack", "Design the complete front cover art asset", "Write out the full tracklist titles and script a 10-second vocal intro teaser"], time: "105 mins", diff: "Hard", start: "Map out an aesthetic concept framework, drafting the single's structural artwork layout before touching a vocal mic." },
+            
+            // Comedy Layer 1: Art-Adjacent Mix
+            { id: "c1", short: "Parody", title: "Parody Rap Bars", type: "comedy", emoji: "🃏", steps: ["Pick an incredibly serious or dramatic rap instrumental beat", "Write hyper-exaggerated, hilarious bars about a completely mundane daily issue", "Deliver the vocals with aggressive, deadpan performance intensity"], time: "40 mins", diff: "Medium", start: "Load up a dark industrial bass track and write intense lyric patterns focusing on losing a matching sock." },
+            { id: "c2", short: "Sarcastic", title: "Sarcastic Ad-Lib Overlay", type: "comedy", emoji: "🗣️", steps: ["Take a verse or track segment you have already recorded", "Layer a background track purely comprised of sarcastic commentary ad-libs", "Mix the funny background counter-vocals smoothly into the master edit"], time: "30 mins", diff: "Easy", start: "Open an existing vocal production, add an isolated audio track, and scoff loudly at your own serious lines." },
+            { id: "c3", short: "Satire Ad", title: "Satirical Ad Artwork", type: "comedy", emoji: "📺", steps: ["Pick a ridiculous, useless product idea or inside joke", "Design a high-fidelity, professional-looking vintage billboard ad mockup", "Incorporate crisp typography featuring a deeply unhinged commercial tagline"], time: "50 mins", diff: "Medium", start: "Pick a useless household item and give it a high-class, corporate branding makeover with sleek layouts." },
+
+            // Comedy Layer 2: Pure Narrative Improv
+            { id: "c4", short: "Prank Call", title: "The Telemarketer Troll", type: "comedy", emoji: "📞", steps: ["Wait for an unsolicited caller or act out a customer support scenario with a friend", "Keep the line active for 3 full minutes while maintaining a bizarre, fictional character profile", "Do not laugh out loud or shatter the illusion before the timer runs out"], time: "15 mins", diff: "Hard", start: "If simulating with a peer, immediately adopt an incredibly slow-talking, highly eccentric persona right from the first hello." },
+            { id: "c5", short: "Critique", title: "The Unhinged Review", type: "comedy", emoji: "🔍", steps: ["Pick a boring, standard household item (like a single shoe, a spoon, or a remote)", "Write or record a 500-word product review treating it like an ancient relic of power", "Deploy heavy historical hyperbole and architectural analysis layouts"], time: "30 mins", diff: "Easy", start: "Stare directly at a coffee mug and start drafting a text describing it as an artifact forged in a long-lost empire." },
+            { id: "c6", short: "Deadpan", title: "The Deadpan Monologue", type: "comedy", emoji: "😐", steps: ["Write down a highly complex, completely bizarre conspiracy theory", "Record yourself delivering the monologue straight to the camera lens", "Keep all facial muscles perfectly rigid; if you smirk, fail the run and reset"], time: "20 mins", diff: "Medium", start: "Prop your phone up, lock your gaze completely into the lens, and outline an unhinged thesis regarding pigeon governance." },
+            { id: "c7", short: "Bad Advice", title: "The Bad Advice Column", type: "comedy", emoji: "📝", steps: ["Identify 3 common, simple modern inconveniences (like traffic or losing a pen)", "Draft a column response providing the most chaotic, complex solutions possible", "Ensure the text reads with strict, professional decorum despite the unhinged logic"], time: "35 mins", diff: "Medium", start: "Format your digital text file with formal headings like 'Dear Distressed Citizen,' before unleashing terrible structural solutions." },
+
+            // Comedy Layer 3: Stand-Up Exclusives
+            { id: "c8", short: "Crowd Work", title: "Crowd Work Improv", type: "comedy", emoji: "🎤", steps: ["Set a timer for 2 minutes and sit in front of a mirror or camera", "Imagine an audience member just said something completely mundane or heckled you", "Improvise rapid-fire, witty crowd-work responses continuously without pausing"], time: "15 mins", diff: "Hard", start: "Point at your own mirror image and simulate a rapid comeback response to an imaginary crowd commentary." },
+            { id: "c9", short: "Tight Set", title: "The 3-Minute Tight Set", type: "comedy", emoji: "🎭", steps: ["Pick a relatable personal theme or recent annoying life event", "Write a structured short-form routine utilizing a clear hook and setup", "Deliver distinct punchlines and execute a solid callback closer before 3 minutes hits"], time: "60 mins", diff: "Expert", start: "Identify a real event that frustrated you this past week and break it down into explicit setup-punchline steps." },
+
+            // Comedy Layer 4: Impressions, Satire Characters & Micro-Language
+            { id: "c10", short: "Accent", title: "The Accent Roulette", type: "comedy", emoji: "🌍", steps: ["Pick a language you do not speak at all (e.g., German, Japanese, Italian)", "Translate and memorize 3 simple, normal phrases", "Record yourself saying them with absurdly exaggerated, highly incorrect comedic confidence"], time: "25 mins", diff: "Easy", start: "Use a basic online translator app to pull three entirely mundane phrases, then voice-record them with extreme flair." },
+            { id: "c11", short: "Politician", title: "The Politician's Pivot", type: "comedy", emoji: "🏛️", steps: ["Invent an absurd fictional politician profile with a ridiculous scandal", "Have a friend ask you or read aloud a direct, critical question about it", "Improvise a 1-minute response using endless corporate buzzwords, completely dodging the answer"], time: "30 mins", diff: "Medium", start: "Wear a formal shirt, stand behind a mock podium setup, and continuously use the phrase 'Let me be completely transparent here'." },
+            { id: "c12", short: "Guru", title: "The Guru Exposé", type: "comedy", emoji: "🧠", steps: ["Adopt the persona of a hyper-aggressive, toxic life-coach/crypto influencer", "Film or voice-record a pitch explaining why waking up at 2 AM to stare at walls is a cheat-code", "Keep a totally serious face while describing a fake, useless digital masterclass pack"], time: "45 mins", diff: "Medium", start: "Point assertively into your webcam or front phone camera lens, adopting an intense, overly urgent rapid-fire vocal cadence." },
+            { id: "c13", short: "Gossip", title: "The Gossip Historian", type: "comedy", emoji: "💅", steps: ["Pick an ancient historical event (e.g., The French Revolution, Trojan War)", "Adopt a dramatic, fast-talking neighborhood street-gossip character identity", "Re-tell the history into a microphone using modern hyper-slang as if it happened down the block yesterday"], time: "40 mins", diff: "Medium", start: "Start your recorded audio script with 'So basically, Julius Caesar was acting totally out of pocket and his friends noticed...'" },
+
+            // Wildcard Slots
+            { id: "w1", short: "Sample", title: "The Sample Hunt", type: "wild", emoji: "🎲", steps: ["Dig into old regional music, street sounds, or vintage dialogue", "Isolate one completely unique, distinct audio clip resource", "Write down a detailed concept explaining how you'd vocalize over a beat built around it"], time: "45 mins", diff: "Easy", start: "Scour retro internet video archives or old vinyl record drops to rip a single 2-second vocal snippet." },
+            { id: "w2", short: "Review", title: "The Breakdown Review", type: "wild", emoji: "🧠", steps: ["Listen closely to a master track by an artist you admire", "Analyze their exact vocal delivery, breath control adjustments, and cadence", "Document three specific technical delivery mechanics you want to steal"], time: "50 mins", diff: "Medium", start: "Open a premium music release in your headphones, pause it every 15 seconds, and take clear technical notes." }
+        ];
+
+        // 27 distinct vibrant colors for the canvas layout slices
+        const COLORS = [
+            "#ff3366", "#00ffcc", "#0099ff", "#ffcc00", "#9933ff", "#ff6600", "#33ff99",
+            "#ff99cc", "#66ccff", "#ffaa00", "#cc33ff", "#ff4444", "#00ccaa", "#4499ff",
+            "#ffdd00", "#ff33a1", "#33ffcc", "#99ff33", "#ff5500", "#aa33ff", "#11ff99",
+            "#ccff00", "#ff44aa", "#33a1ff", "#ff5588", "#00ffaa", "#a133ff"
+        ];
+
+        let gameState = { xp: 0, level: 1, score: 0, unlockedTrophies: [] };
+        try {
+            const saved = localStorage.getItem("creativity_quest_save_v10");
+            if (saved) gameState = JSON.parse(saved);
+        } catch(e) {}
+
+        let poolQuests = [];
+        function refreshQuestPool() {
+            poolQuests = quests.filter(q => !gameState.unlockedTrophies.includes(q.id));
+            if (poolQuests.length === 0) {
+                poolQuests = [...quests];
+            }
+        }
+        refreshQuestPool();
+
+        const canvas = document.getElementById("wheelCanvas");
+        const ctx = canvas.getContext("2d");
+        const NUM = quests.length;
+        const ARC = (2 * Math.PI) / NUM;
+        const R = canvas.width / 2;
+
+        let currentAngle = 0;
+        let isSpinning = false;
+        let activeQuest = null;
+
+        function drawWheel(angle) {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            for (let i = 0; i < NUM; i++) {
+                const start = angle + i * ARC;
+                const end = start + ARC;
+                const mid = start + ARC / 2;
+
+                ctx.beginPath();
+                ctx.moveTo(R, R);
+                ctx.arc(R, R, R - 2, start, end);
+                ctx.closePath();
+                
+                if (gameState.unlockedTrophies.includes(quests[i].id)) {
+                    ctx.fillStyle = "#1b1b24"; 
+                } else {
+                    ctx.fillStyle = COLORS[i % COLORS.length];
+                }
+                
+                ctx.fill();
+                ctx.strokeStyle = "#0b0b0e";
+                ctx.lineWidth = 0.8;
+                ctx.stroke();
+
+                ctx.save();
+                ctx.translate(R, R);
+                ctx.rotate(mid);
+                ctx.textAlign = "right";
+                
+                if (gameState.unlockedTrophies.includes(quests[i].id)) {
+                    ctx.fillStyle = "#4c4c5e";
+                } else {
+                    ctx.fillStyle = "#0b0b0e";
+                }
+                
+                ctx.font = "bold 6.5px -apple-system, sans-serif";
+                ctx.fillText(quests[i].short, R - 12, 2);
+                ctx.restore();
+            }
+
+            ctx.beginPath();
+            ctx.arc(R, R, R - 2, 0, 2 * Math.PI);
+            ctx.strokeStyle = "#141419";
+            ctx.lineWidth = 4;
+            ctx.stroke();
+        }
+
+        drawWheel(currentAngle);
+
+        function spin() {
+            if (isSpinning) return;
+            refreshQuestPool();
+            
+            isSpinning = true;
+            document.getElementById("spinBtn").disabled = true;
+
+            const targetedQuest = poolQuests[Math.floor(Math.random() * poolQuests.length)];
+            const targetIndex = quests.findIndex(q => q.id === targetedQuest.id);
+
+            const targetSliceAngle = (targetIndex * ARC) + (ARC / 2);
+            const targetAngleOffset = ((-targetSliceAngle - (Math.PI / 2)) % (2 * Math.PI));
+            
+            const minSpins = 6 * 2 * Math.PI; 
+            const finalTargetRotation = minSpins + targetAngleOffset;
+            
+            const duration = 4000;
+            const startTime = performance.now();
+            const startAngle = currentAngle % (2 * Math.PI);
+
+            function easeOut(t) { return 1 - Math.pow(1 - t, 3); }
+
+            function animate(now) {
+                const elapsed = now - startTime;
+                const t = Math.min(elapsed / duration, 1);
+                currentAngle = startAngle + (finalTargetRotation - startAngle) * easeOut(t);
+                drawWheel(currentAngle);
+
+                if (t < 1) {
+                    requestAnimationFrame(animate);
+                } else {
+                    isSpinning = false;
+                    document.getElementById("spinBtn").disabled = false;
+                    loadQuest(targetedQuest);
+                }
+            }
+
+            requestAnimationFrame(animate);
+        }
+
+        function loadQuest(quest) {
+            activeQuest = quest;
+            document.getElementById("questTitle").innerText = `${quest.emoji} ${quest.title}`;
+            document.getElementById("questTimeTag").innerText = quest.time;
+            document.getElementById("questDiffTag").innerText = quest.diff;
+            document.getElementById("questSuggestBox").innerText = `💡 Where to start: ${quest.start}`;
+            
+            // Adjust difficulty tag dynamic coloring
+            const diffEl = document.getElementById("questDiffTag");
+            if (quest.diff === "Easy") diffEl.style.background = "#00ffcc";
+            else if (quest.diff === "Medium") diffEl.style.background = "#0099ff";
+            else if (quest.diff === "Hard") diffEl.style.background = "#ff6600";
+            else diffEl.style.background = "#ff3366";
+            diffEl.style.color = "#0b0b0e";
+
+            const stepList = document.getElementById("stepList");
+            stepList.innerHTML = "";
+            document.getElementById("claimBtn").style.display = "none";
+
+            quest.steps.forEach((step, idx) => {
+                const li = document.createElement("li");
+                li.className = "step-item";
+                li.innerHTML = `<input type="checkbox" id="step-${idx}"> <span>${step}</span>`;
+                li.addEventListener("click", (e) => {
+                    if (e.target.tagName !== 'INPUT') {
+                        const cb = li.querySelector('input');
+                        cb.checked = !cb.checked;
+                    }
+                    li.classList.toggle("completed", li.querySelector('input').checked);
+                    checkQuestCompletion();
+                });
+                stepList.appendChild(li);
+            });
+
+            document.getElementById("questModal").style.display = "flex";
+        }
+
+        function checkQuestCompletion() {
+            const total = activeQuest.steps.length;
+            const checked = document.getElementById("stepList").querySelectorAll('input:checked').length;
+            document.getElementById("claimBtn").style.display = (checked === total) ? "block" : "none";
+        }
+
+        function completeQuest() {
+            gameState.score += 100;
+            gameState.xp += 35;
+            if (!gameState.unlockedTrophies.includes(activeQuest.id)) {
+                gameState.unlockedTrophies.push(activeQuest.id);
+            }
+            const xpNeeded = gameState.level * 100;
+            if (gameState.xp >= xpNeeded) {
+                gameState.xp -= xpNeeded;
+                gameState.level += 1;
+                alert(`🎉 LEVEL UP! Level ${gameState.level} unlocked!`);
+            }
+            
+            refreshQuestPool();
+            saveGame();
+            document.getElementById("questModal").style.display = "none";
+        }
+
+        function buildTrophyCabinetUI() {
+            const cabinet = document.getElementById("taskCabinet");
+            cabinet.innerHTML = "";
+            quests.forEach(q => {
+                const div = document.createElement("div");
+                div.className = "trophy-slot";
+                div.id = `t-${q.id}`;
+                div.innerText = q.emoji;
+                cabinet.appendChild(div);
+            });
+        }
+
+        function saveGame() {
+            try { localStorage.setItem("creativity_quest_save_v10", JSON.stringify(gameState)); } catch(e) {}
+            updateHUD();
+        }
+
+        function updateHUD() {
+            document.getElementById("scoreDisplay").innerText = `Score: ${gameState.score}`;
+            document.getElementById("lvlDisplay").innerText = `Level ${gameState.level} Creator`;
+            const xpNeeded = gameState.level * 100;
+            const pct = Math.min((gameState.xp / xpNeeded) * 100, 100);
+            document.getElementById("xpFill").style.width = `${pct}%`;
+            document.getElementById("xpText").innerText = `${gameState.xp} / ${xpNeeded} XP`;
+
+            quests.forEach(q => {
+                const el = document.getElementById(`t-${q.id}`);
+                if (el) el.classList.remove("unlocked");
+            });
+
+            gameState.unlockedTrophies.forEach(id => {
+                const el = document.getElementById(`t-${id}`);
+                if (el) el.classList.add("unlocked");
+            });
+
+            const genres = ["vocal","design","hybrid","comedy","wild"];
+            genres.forEach(g => {
+                const genreIds = quests.filter(q => q.type === g).map(q => q.id);
+                const allDone = genreIds.every(id => gameState.unlockedTrophies.includes(id));
+                const el = document.getElementById(`g-${g}`);
+                if (el) el.classList.remove("unlocked");
+                if (allDone && el) el.classList.add("unlocked");
+            });
+
+            drawWheel(currentAngle);
+        }
+
+        document.getElementById("spinBtn").addEventListener("click", spin);
+        document.getElementById("claimBtn").addEventListener("click", completeQuest);
+        document.getElementById("abandonBtn").addEventListener("click", () => {
+            document.getElementById("questModal").style.display = "none";
+        });
+
+        buildTrophyCabinetUI();
+        updateHUD();
+    </script>
+</body>
+</html>
